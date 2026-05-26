@@ -7,3 +7,4 @@ set(CMAKE_CXX_FLAGS "-std=c++2a -Wall -Wextra -Werror -Wpedantic")
 set(CMAKE_VERBOSE_MAKEFILE on)
 
 add_executable(macros macros.cpp)
+add_executable(thread thread.cpp)
