@@ -12,8 +12,8 @@ auto sleep_and_say(const std::string& msg, bool sleep) -> void
 
 int main() 
 {
-    auto t1 = create_and_start_thread(1, "dbg", &sleep_and_say, std::string("there"), true);
-    auto t2 = create_and_start_thread(2, "dbg", &sleep_and_say, std::string("hello"), false);
+    auto t1 = common::create_and_start_thread(1, "dbg", &sleep_and_say, std::string("there"), true);
+    auto t2 = common::create_and_start_thread(2, "dbg", &sleep_and_say, std::string("hello"), false);
     t1->join();
     t2->join();
     delete t1;

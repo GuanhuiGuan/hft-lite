@@ -11,6 +11,8 @@
 
 using namespace std::chrono_literals;
 
+namespace common {
+
 inline auto set_thread_core([[maybe_unused]] int core_id) -> bool
 {
 #ifdef __linux__
@@ -39,3 +41,5 @@ inline auto create_and_start_thread(int core_id, const std::string& name, F&& fu
     auto thread = new std::thread(body);
     return thread;
 }
+
+} // namespace common
