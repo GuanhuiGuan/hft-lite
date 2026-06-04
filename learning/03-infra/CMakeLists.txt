@@ -8,3 +8,4 @@ set(CMAKE_VERBOSE_MAKEFILE on)
 
 add_executable(macros macros.cpp)
 add_executable(thread thread.cpp)
+add_executable(mempool mempool.cpp)

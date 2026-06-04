@@ -13,7 +13,7 @@ using namespace std::chrono_literals;
 
 namespace common {
 
-inline auto set_thread_core([[maybe_unused]] int core_id) -> bool
+inline auto set_thread_core([[maybe_unused]] int core_id) noexcept -> bool
 {
 #ifdef __linux__
     std::println("setting thread affinity {}", core_id);
@@ -28,7 +28,7 @@ inline auto set_thread_core([[maybe_unused]] int core_id) -> bool
 }
 
 template<typename F, typename... A>
-inline auto create_and_start_thread(int core_id, const std::string& name, F&& func, A&&... args) -> std::thread*
+inline auto create_and_start_thread(int core_id, const std::string& name, F&& func, A&&... args) noexcept -> std::thread*
 {
     auto body = [core_id, name, func=std::forward<F>(func), ...args=std::forward<A>(args)]() mutable {
         if (core_id >= 0 && !set_thread_core(core_id)) {
