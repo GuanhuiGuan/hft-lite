@@ -11,9 +11,10 @@ class Spsc {
     std::vector<T> data_;
     std::atomic<size_t> next_get_;
     std::atomic<size_t> next_set_;
+    std::atomic<size_t> size_;
 public:
     explicit Spsc(size_t cap)
-    : data_(cap), next_get_(0ULL), next_set_(0ULL) {}
+    : data_(cap), next_get_(0ULL), next_set_(0ULL), size_{0ULL} {}
 
     Spsc(const Spsc&) = delete;
     Spsc(Spsc&&) = delete;
@@ -28,6 +29,8 @@ public:
     void advance_get() noexcept
     {
         next_get_ = (next_get_ + 1) % data_.size();
+        ASSERT(size_ != 0, "Read an invalid elem in " + std::to_string(pthread_self()));
+        --size_;
     }
 
     T* get_next_set() noexcept
@@ -38,6 +41,12 @@ public:
     void advance_set() noexcept
     {
         next_set_ = (next_set_ + 1) % data_.size();
+        ++size_;
+    }
+
+    size_t size() const noexcept
+    {
+        return size_;
     }
 };
 
