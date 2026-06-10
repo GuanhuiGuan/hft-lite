@@ -3,6 +3,7 @@
 #include "macros.hpp"
 #include <atomic>
 #include <vector>
+#include <new> // for std::hardware_destructive_interference_size
 
 namespace common {
 
@@ -47,6 +48,61 @@ public:
     size_t size() const noexcept
     {
         return size_;
+    }
+};
+
+template<typename T>
+class SpscRaw {
+    const size_t cap_;
+    T* data_ = nullptr;
+
+    static constexpr size_t cache_line = std::hardware_destructive_interference_size;
+
+    alignas(cache_line) std::atomic<size_t> get_;
+    alignas(cache_line) std::atomic<size_t> set_;
+
+    inline size_t slot(size_t i) const noexcept
+    {
+        return (i & (cap_ - 1));
+    }
+public:
+    SpscRaw(size_t cap) : cap_{cap + 1}, get_{0ULL}, set_{0ULL} 
+    {
+        ASSERT(cap_ > 0 && (cap_ & (cap_ - 1)) == 0, "cap + 1 should be power of 2");
+        data_ = static_cast<T*>(operator new(sizeof(T) * cap_, std::align_val_t(alignof(T))));
+    }
+
+    SpscRaw(const SpscRaw&) = delete;
+    SpscRaw(SpscRaw&&) = delete;
+    SpscRaw& operator=(const SpscRaw&) = delete;
+    SpscRaw& operator=(SpscRaw&&) = delete;
+
+    bool try_set(const T& x) noexcept
+    {
+        auto set = set_.load(std::memory_order_relaxed);
+        auto next_set = set + 1;
+        if (next_set == get_.load(std::memory_order_acquire)) {
+            return false;
+        }
+        new (&data_[slot(set)]) T(x);
+        set_.store(next_set, std::memory_order_release);
+        return true;
+    }
+
+    bool try_get(T& x) noexcept
+    {
+        auto get = get_.load(std::memory_order_relaxed);
+        if (get == set_.load(std::memory_order_acquire)) {
+            return false;
+        }
+        x = data_[slot(get)];
+        get_.store(get + 1, std::memory_order_release);
+        return true;
+    }
+
+    inline size_t size() const noexcept
+    {
+        return set_.load(std::memory_order_relaxed) - get_.load(std::memory_order_relaxed);
     }
 };
 
