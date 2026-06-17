@@ -6,6 +6,8 @@
 
 namespace common {
 
+using namespace std::chrono_literals;
+
 inline auto get_now_nanos() noexcept
 {
     return std::chrono::duration_cast<std::chrono::nanoseconds>
