@@ -1,5 +1,7 @@
 #pragma once
 
+#include "logger.hpp"
+
 #include <string>
 #include <print>
 #include <netdb.h>
@@ -33,5 +35,23 @@ bool set_so_timestamp(int fd) noexcept;
 
 // check whether a socket op would block
 bool would_block() noexcept;
+
+struct SocketCfg
+{
+    std::string iface_;
+    std::string ip_;
+    int port_ = -1;
+    bool is_udp_ = false;
+    bool is_listening_ = false;
+    bool so_timestamp_ = false;
+
+    // inline std::string to_string() const noexcept {
+    //     return std::format(
+    //         f"SocketCfg[iface:{iface_} ip:{ip_} port:{port_}, is_udp:{is_udp_}, is_listening:{is_listening_} so_timestamp_:{so_timestamp_}]");
+    // }
+};
+
+// create socket
+// [[nodiscard]] int create_socket(Logger& logger, const SocketCfg& cfg) noexcept;
 
 } // namespace common

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <format>
 
 // c++20: replaced by [[likely]] and [[unlikely]]
 #define LIKELY(x) __builtin_expect(!!(x), 1)

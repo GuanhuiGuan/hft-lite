@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS "-std=c++26 -Wall -Wextra -Werror -Wpedantic --param destruc
 find_package(Threads REQUIRED)
 
 add_library(libcommon STATIC 
+    src/logger.cpp
     src/socket_util.cpp
 )
 target_include_directories(libcommon PUBLIC ${PROJECT_SOURCE_DIR}/include)

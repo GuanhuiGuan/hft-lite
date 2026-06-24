@@ -60,4 +60,10 @@ bool would_block() noexcept
     return errno == EWOULDBLOCK || errno == EINPROGRESS;
 }
 
+// int create_socket(Logger& logger, const SocketCfg& cfg) noexcept
+// {
+//     // TODO
+//     return 0;
+// }
+
 } // namespace common

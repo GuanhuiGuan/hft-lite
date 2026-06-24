@@ -80,10 +80,10 @@ public:
                     ++str;
                 } else {
                     if constexpr (sizeof...(args) > 0) {
-                        [this](const char* s, auto&& val, auto&&... others) 
+                        [this]<typename T, typename... Ts>(const char* s, T&& val, Ts&&... others) 
                         {
                             push(val);
-                            log(s + 1, std::forward<decltype(others)>(others)...);
+                            log(s + 1, std::forward<Ts>(others)...);
                         }(str, std::forward<A>(args)...);
                         return;
                     } else {
@@ -100,6 +100,20 @@ public:
     void log(const std::string& str, A&&... args)
     {
         log(str.c_str(), std::forward<A>(args)...);
+    }
+
+    template<typename... A>
+    void info(const std::string& str, A&&... args)
+    {
+        std::string timestr;
+        log("INFO %:% %() % " + str + "\n", __FILE__, __LINE__, __FUNCTION__, get_now_str(&timestr), std::forward<A>(args)...);
+    }
+
+    template<typename... A>
+    void error(const std::string& str, A&&... args)
+    {
+        std::string timestr;
+        log("ERROR %:% %() % " + str + "\n", __FILE__, __LINE__, __FUNCTION__, get_now_str(&timestr), std::forward<A>(args)...);
     }
 
 private:
@@ -122,50 +136,5 @@ private:
     void push(const float x) noexcept { push({.type_=LogType::FLOAT, .data_={.f=x}}); }
     void push(const double x) noexcept { push({.type_=LogType::DOUBLE, .data_={.d=x}}); }
 };
-
-Logger::~Logger()
-{
-    std::string close_time {};
-    std::cerr << get_now_str(&close_time) << " flushing and closing logger " << filename_ << std::endl;
-
-    while (queue_.size()) {
-        std::this_thread::sleep_for(1s);
-    }
-    running_ = false;
-    thread_->join();
-    file_.close();
-    std::cerr << get_now_str(&close_time) << " logger " << filename_ << " exiting" << std::endl;
-}
-
-void Logger::flush_queue() noexcept
-{
-    while (running_) {
-        for (auto get = queue_.get_next_get(); get; get = queue_.get_next_get()) {
-            switch (get->type_) {
-                case LogType::CHAR:
-                    file_ << get->data_.c; break;
-                case LogType::INT:
-                    file_ << get->data_.i; break;
-                case LogType::LONG:
-                    file_ << get->data_.l; break;
-                case LogType::LLONG:
-                    file_ << get->data_.ll; break;
-                case LogType::UINT:
-                    file_ << get->data_.ui; break;
-                case LogType::ULONG:
-                    file_ << get->data_.ul; break;
-                case LogType::ULLONG:
-                    file_ << get->data_.ull; break;
-                case LogType::FLOAT:
-                    file_ << get->data_.f; break;
-                case LogType::DOUBLE:
-                    file_ << get->data_.d; break;
-            }
-            queue_.advance_get();
-        }
-        file_.flush();
-        std::this_thread::sleep_for(10ms);
-    }
-}
 
 } // namespace common
