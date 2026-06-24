@@ -12,6 +12,7 @@ add_library(libcommon STATIC
     src/socket_util.cpp
 )
 target_include_directories(libcommon PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(libcommon PUBLIC ${PROJECT_SOURCE_DIR}/include/infra)
 
 add_executable(socket socket.cpp)
 target_link_libraries(socket PRIVATE 
