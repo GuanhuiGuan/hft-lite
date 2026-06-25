@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <source_location>
 
 #include "lockfree.hpp"
 #include "thread.hpp"
@@ -102,20 +103,6 @@ public:
         log(str.c_str(), std::forward<A>(args)...);
     }
 
-    template<typename... A>
-    void info(const std::string& str, A&&... args)
-    {
-        std::string timestr;
-        log("INFO %:% %() % " + str + "\n", __FILE__, __LINE__, __FUNCTION__, get_now_str(&timestr), std::forward<A>(args)...);
-    }
-
-    template<typename... A>
-    void error(const std::string& str, A&&... args)
-    {
-        std::string timestr;
-        log("ERROR %:% %() % " + str + "\n", __FILE__, __LINE__, __FUNCTION__, get_now_str(&timestr), std::forward<A>(args)...);
-    }
-
 private:
 
     void flush_queue() noexcept;
@@ -135,6 +122,29 @@ private:
     void push(const unsigned long long x) noexcept { push({.type_=LogType::LLONG, .data_={.ull=x}}); }
     void push(const float x) noexcept { push({.type_=LogType::FLOAT, .data_={.f=x}}); }
     void push(const double x) noexcept { push({.type_=LogType::DOUBLE, .data_={.d=x}}); }
+
+    void push(const char* x) noexcept
+    {
+        while (*x) {
+            push(*x);
+            ++x;
+        }
+    }
+    void push(const std::string& x) noexcept { push(x.c_str()); }
 };
+
+// define macros to log metadata
+
+#define INFO(logger, fmt, ...) \
+    do { \
+        std::string timestr {}; \
+        (logger).log(std::string("% INFO %:%~%() ") + fmt + "\n", common::get_now_str(&timestr), __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__); \
+    } while (0)
+
+#define ERROR(logger, fmt, ...) \
+    do { \
+        std::string timestr {}; \
+        (logger).log(std::string("% ERROR %:%~%() ") + fmt + "\n", common::get_now_str(&timestr), __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__); \
+    } while (0)
 
 } // namespace common
