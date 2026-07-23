@@ -28,6 +28,12 @@ struct TCPSocket
         fd_ = -1;
     }
 
+    int connect(const std::string& ip, const std::string& iface, int port, bool is_listening);
+
+    void send(const void* data, size_t len) noexcept;
+
+    bool recv_and_send() noexcept;
+
     int fd_ = -1;
     Logger &logger_;
 
