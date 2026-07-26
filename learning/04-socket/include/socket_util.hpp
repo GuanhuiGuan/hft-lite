@@ -7,6 +7,7 @@
 #include <cstring>
 #include <print>
 #include <netdb.h>
+#include <sys/epoll.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <fcntl.h>

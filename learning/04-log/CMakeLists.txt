@@ -10,6 +10,8 @@ find_package(Threads REQUIRED)
 
 add_library(libcommon STATIC 
     logger.cpp
+    tcp_socket.cpp
+    tcp_server.cpp
 )
 target_include_directories(libcommon PUBLIC ${PROJECT_SOURCE_DIR})
 
