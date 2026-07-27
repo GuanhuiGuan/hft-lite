@@ -2,6 +2,7 @@
 
 #include "logger.hpp"
 
+#include <algorithm>
 #include <string>
 #include <sstream>
 #include <cstring>

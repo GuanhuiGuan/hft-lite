@@ -15,7 +15,7 @@ struct TCPSocket
         recv_buffer_ = new char[TCP_BUFFER_SIZE];
     }
 
-    ~TCPSocket()
+    ~TCPSocket() noexcept
     {
         destroy();
         delete[] send_buffer_; send_buffer_ = nullptr;
