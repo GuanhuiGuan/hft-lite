@@ -2,10 +2,13 @@
 
 namespace common {
 
-int TCPSocket::connect(const std::string& iface, const std::string& ip, int port, bool is_listening)
+int TCPSocket::connect(const std::string& ip, const std::string& iface, int port, bool is_listening)
 {
-    destroy();
+    // destroy();
+
     SocketCfg sockcfg {iface, ip, port, false, is_listening, true};
+    std::cout << "creating socket fd: " << sockcfg.to_str() << std::endl;
+
     fd_ = create_socket(logger_, sockcfg);
     sock_attr_.sin_addr.s_addr = INADDR_ANY;
     sock_attr_.sin_port = htons(port);
@@ -60,7 +63,7 @@ bool TCPSocket::recv_and_send() noexcept
         const auto send_size = ::send(fd_, send_buffer_, next_send_valid_idx_, MSG_DONTWAIT | MSG_NOSIGNAL);
         if (send_size > 0) {
             INFO(logger_, "send socket: %, len: %", fd_, send_size);
-            if (send_size < next_send_valid_idx_) {
+            if (static_cast<size_t>(send_size) < next_send_valid_idx_) {
                 size_t unsent_bytes = next_send_valid_idx_ - send_size;
                 std::memmove(send_buffer_, send_buffer_ + send_size, unsent_bytes);
                 next_send_valid_idx_ = unsent_bytes;

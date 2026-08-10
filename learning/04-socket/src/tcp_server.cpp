@@ -19,7 +19,6 @@ void TCPServer::del(TCPSocket *socket)
     std::erase(sockets_, socket);
     std::erase(recv_sockets_, socket);
     std::erase(send_sockets_, socket);
-    delete socket;
 }
 
 void TCPServer::listen(const std::string &iface, int port)
@@ -30,6 +29,20 @@ void TCPServer::listen(const std::string &iface, int port)
     ASSERT(listener_socket_.connect("", iface, port, true) >= 0, "listener socket failed to connect. iface:" + iface + 
         " port:" + std::to_string(port) + " errno:" + std::string(std::strerror(errno)));
     ASSERT(epoll_add(&listener_socket_), "epoll_ctl() failed. errno:" + std::string(std::strerror(errno)));
+}
+
+void TCPServer::recv_and_send() noexcept
+{
+    bool recv = false;
+    for (const auto& sock : recv_sockets_) {
+        recv |= sock->recv_and_send();
+    }
+    if (recv) {
+        recv_finished_callback_();
+    }
+    for (const auto& sock : send_sockets_) {
+        sock->recv_and_send();
+    }
 }
 
 void TCPServer::poll() noexcept
@@ -49,7 +62,7 @@ void TCPServer::poll() noexcept
         TCPSocket *sock = reinterpret_cast<TCPSocket *>(evt.data.ptr);
         
         if (evt.events & EPOLLIN) {
-            if (sock == listener_socket_) {
+            if (sock == &listener_socket_) {
                 INFO(logger_, "EPOLLIN listener_socket:%", sock->fd_);
                 has_new_conn = true;
                 continue;
@@ -82,7 +95,7 @@ void TCPServer::poll() noexcept
         int fd = accept(listener_socket_.fd_, reinterpret_cast<sockaddr *>(&addr), &addr_len);
         if (fd == -1) break;
         ASSERT(set_non_block(fd) && set_no_delay(fd), "failed to set non-block or no-delay on socket:%" + std::to_string(fd));
-        INFO("accepted socket:%", fd);
+        INFO(logger_, "accepted socket:%", fd);
 
         TCPSocket *sock = new TCPSocket(logger_);
         sock->fd_ = fd;

@@ -23,6 +23,8 @@ public:
 
     void listen(const std::string &iface, int port);
 
+    void recv_and_send() noexcept;
+
     void poll() noexcept;
 
     TCPServer() = delete;
@@ -40,7 +42,7 @@ private:
     void del(TCPSocket *socket);
 
 public:
-    constexpr int MAX_EVENTS = 1024;
+    constexpr static int MAX_EVENTS = 1024;
 
     int epoll_fd_ = -1; // file descriptor
     TCPSocket listener_socket_;

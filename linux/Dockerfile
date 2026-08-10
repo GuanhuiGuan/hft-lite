@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     ninja-build \
     build-essential \
+    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

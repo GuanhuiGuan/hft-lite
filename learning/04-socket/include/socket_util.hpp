@@ -131,7 +131,7 @@ constexpr int MAX_TCP_CONN_BACKLOG = 1024;
     };
     addrinfo *result = nullptr;
     const auto rc = getaddrinfo(ip.c_str(), std::to_string(cfg.port_).c_str(), &hints, &result);
-    ASSERT(rc == 0, "getaddrinfo() failed. error:" + std::string(gai_strerror(rc)) + "errno:" + strerror(errno));
+    ASSERT(rc == 0, "getaddrinfo() failed. error:" + std::string(gai_strerror(rc)) + " errno:" + strerror(errno));
 
     int socket_fd = -1;
     int one = 1;
@@ -140,20 +140,24 @@ constexpr int MAX_TCP_CONN_BACKLOG = 1024;
             "socket() failed. errno:" + std::string(strerror(errno)));
         ASSERT(set_non_block(socket_fd), "set_non_block() failed. errno:" + std::string(strerror(errno)));
 
+        std::cout << "socket_fd: " << socket_fd << " addrinfo: " << ai->ai_addr->sa_data << std::endl;
+
         if (!cfg.is_udp_) {
             ASSERT(set_no_delay(socket_fd), "set_no_delay() failed. errno:" + std::string(strerror(errno)));
         }
 
         if (cfg.is_listening_) {
-            // establish connection to specified address.
-            ASSERT(connect(socket_fd, ai->ai_addr, ai->ai_addrlen), "connect() failed. errno:" + std::string(strerror(errno)));
+            // allow re-using the address in the call to bind()
+            ASSERT(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&one), sizeof(one)) == 0, 
+                "setsockopt() SO_REUSEADDR failed. errno:" + std::string(strerror(errno)));
             // bind to the specified port number.
             const sockaddr_in addr{AF_INET, htons(cfg.port_), {htonl(INADDR_ANY)}, {}};
             const sockaddr *bind_addr = cfg.is_udp_ ? reinterpret_cast<const sockaddr*>(&addr) : ai->ai_addr;
-            ASSERT(bind(socket_fd, bind_addr, sizeof(addr)), "bind() failed. errno:" + std::string(strerror(errno)));
+            ASSERT(bind(socket_fd, bind_addr, sizeof(addr)) == 0, "bind() failed. errno:" + std::string(strerror(errno)));
         } else {
-            // allow re-using the address in the call to bind()
-            ASSERT(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&one), sizeof(one)) == 0, "setsockopt() SO_REUSEADDR failed. errno:" + std::string(strerror(errno)));
+            // establish connection to specified address.
+            auto conn_ret = connect(socket_fd, ai->ai_addr, ai->ai_addrlen);
+            ASSERT(conn_ret == 0, "connect() failed. errno:" + std::string(strerror(errno)));
         }
 
         if (!cfg.is_udp_ && cfg.is_listening_) {
