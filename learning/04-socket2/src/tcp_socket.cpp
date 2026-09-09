@@ -38,15 +38,15 @@ namespace common {
 
       const auto user_time = get_now_nanos();
 
-      logger_.log("%:% %() % read socket:% len:% utime:% ktime:% diff:%\n", __FILE__, __LINE__, __FUNCTION__,
-                  common::get_now_str(&time_str_), socket_fd_, next_rcv_valid_index_, user_time, kernel_time, (user_time - kernel_time));
+      INFO(logger_, "read socket:% len:% utime:% ktime:% diff:%", 
+        socket_fd_, next_rcv_valid_index_, user_time, kernel_time, (user_time - kernel_time));
       recv_callback_(this, kernel_time);
     }
 
     if (next_send_valid_index_ > 0) {
       // Non-blocking call to send data.
       const auto n = ::send(socket_fd_, outbound_data_.data(), next_send_valid_index_, MSG_DONTWAIT | MSG_NOSIGNAL);
-      logger_.log("%:% %() % send socket:% len:%\n", __FILE__, __LINE__, __FUNCTION__, common::get_now_str(&time_str_), socket_fd_, n);
+      INFO(logger_, "send socket:% len:%", socket_fd_, n);
     }
     next_send_valid_index_ = 0;
 

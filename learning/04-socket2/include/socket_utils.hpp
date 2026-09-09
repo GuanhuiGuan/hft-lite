@@ -96,8 +96,7 @@ namespace common {
     std::string time_str;
 
     const auto ip = socket_cfg.ip_.empty() ? getIfaceIP(socket_cfg.iface_) : socket_cfg.ip_;
-    logger.log("%:% %() % cfg:%\n", __FILE__, __LINE__, __FUNCTION__,
-               common::get_now_str(&time_str), socket_cfg.toString());
+    INFO(logger, "cfg:%", socket_cfg.toString());
 
     const int input_flags = (socket_cfg.is_listening_ ? AI_PASSIVE : 0) | (AI_NUMERICHOST | AI_NUMERICSERV);
     const addrinfo hints{input_flags, AF_INET, socket_cfg.is_udp_ ? SOCK_DGRAM : SOCK_STREAM,

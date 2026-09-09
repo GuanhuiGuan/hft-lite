@@ -48,27 +48,23 @@ namespace common {
       // Check for new connections.
       if (event.events & EPOLLIN) {
         if (socket == &listener_socket_) {
-          logger_.log("%:% %() % EPOLLIN listener_socket:%\n", __FILE__, __LINE__, __FUNCTION__,
-                      common::get_now_str(&time_str_), socket->socket_fd_);
+          INFO(logger_, "EPOLLIN listener_socket:%", socket->socket_fd_);
           have_new_connection = true;
           continue;
         }
-        logger_.log("%:% %() % EPOLLIN socket:%\n", __FILE__, __LINE__, __FUNCTION__,
-                    common::get_now_str(&time_str_), socket->socket_fd_);
+        INFO(logger_, "EPOLLIN socket:%", socket->socket_fd_);
         if (std::find(receive_sockets_.begin(), receive_sockets_.end(), socket) == receive_sockets_.end())
           receive_sockets_.push_back(socket);
       }
 
       if (event.events & EPOLLOUT) {
-        logger_.log("%:% %() % EPOLLOUT socket:%\n", __FILE__, __LINE__, __FUNCTION__,
-                    common::get_now_str(&time_str_), socket->socket_fd_);
+        INFO(logger_, "EPOLLOUT socket:%", socket->socket_fd_);
         if (std::find(send_sockets_.begin(), send_sockets_.end(), socket) == send_sockets_.end())
           send_sockets_.push_back(socket);
       }
 
       if (event.events & (EPOLLERR | EPOLLHUP)) {
-        logger_.log("%:% %() % EPOLLERR socket:%\n", __FILE__, __LINE__, __FUNCTION__,
-                    common::get_now_str(&time_str_), socket->socket_fd_);
+        INFO(logger_, "EPOLLERR socket:%", socket->socket_fd_);
         if (std::find(receive_sockets_.begin(), receive_sockets_.end(), socket) == receive_sockets_.end())
           receive_sockets_.push_back(socket);
       }
@@ -76,8 +72,7 @@ namespace common {
 
     // Accept a new connection, create a TCPSocket and add it to our containers.
     while (have_new_connection) {
-      logger_.log("%:% %() % have_new_connection\n", __FILE__, __LINE__, __FUNCTION__,
-                  common::get_now_str(&time_str_));
+      INFO(logger_, "have_new_connection");
       sockaddr_storage addr;
       socklen_t addr_len = sizeof(addr);
       int fd = accept(listener_socket_.socket_fd_, reinterpret_cast<sockaddr *>(&addr), &addr_len);
@@ -87,8 +82,7 @@ namespace common {
       ASSERT(setNonBlocking(fd) && disableNagle(fd),
              "Failed to set non-blocking or no-delay on socket:" + std::to_string(fd));
 
-      logger_.log("%:% %() % accepted socket:%\n", __FILE__, __LINE__, __FUNCTION__,
-                  common::get_now_str(&time_str_), fd);
+      INFO(logger_, "accepted socket:%", fd);
 
       auto socket = new TCPSocket(logger_);
       socket->socket_fd_ = fd;
