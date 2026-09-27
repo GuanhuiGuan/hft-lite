@@ -79,7 +79,7 @@ namespace common {
       if (fd == -1)
         break;
 
-      ASSERT(setNonBlocking(fd) && disableNagle(fd),
+      ASSERT(set_non_blocking(fd) && disable_nagle(fd),
              "Failed to set non-blocking or no-delay on socket:" + std::to_string(fd));
 
       INFO(logger_, "accepted socket:%", fd);
