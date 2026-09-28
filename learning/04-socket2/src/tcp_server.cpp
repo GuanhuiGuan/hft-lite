@@ -1,96 +1,94 @@
 #include "tcp_server.hpp"
 
 namespace common {
-  /// Add and remove socket file descriptors to and from the EPOLL list.
-  auto TCPServer::addToEpollList(TCPSocket *socket) {
+
+auto TCPServer::add_to_epoll_list(TCPSocket *socket) {
     epoll_event ev{EPOLLET | EPOLLIN, {reinterpret_cast<void *>(socket)}};
     return !epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, socket->socket_fd_, &ev);
-  }
+}
 
-  /// Start listening for connections on the provided interface and port.
-  auto TCPServer::listen(const std::string &iface, int port) -> void {
+auto TCPServer::listen(const std::string &iface, int port) -> void {
     epoll_fd_ = epoll_create(1);
     ASSERT(epoll_fd_ >= 0, "epoll_create() failed error:" + std::string(std::strerror(errno)));
 
     ASSERT(listener_socket_.connect("", iface, port, true) >= 0,
-           "Listener socket failed to connect. iface:" + iface + " port:" + std::to_string(port) + " error:" +
-           std::string(std::strerror(errno)));
+            "Listener socket failed to connect. iface:" + iface + " port:" + std::to_string(port) + " error:" +
+            std::string(std::strerror(errno)));
 
-    ASSERT(addToEpollList(&listener_socket_), "epoll_ctl() failed. error:" + std::string(std::strerror(errno)));
-  }
+    ASSERT(add_to_epoll_list(&listener_socket_), "epoll_ctl() failed. error:" + std::string(std::strerror(errno)));
+}
 
-  /// Publish outgoing data from the send buffer and read incoming data from the receive buffer.
-  auto TCPServer::sendAndRecv() noexcept -> void {
+auto TCPServer::send_and_recv() noexcept -> void {
     auto recv = false;
 
     std::for_each(receive_sockets_.begin(), receive_sockets_.end(), [&recv](auto socket) {
-      recv |= socket->sendAndRecv();
+        recv |= socket->send_and_recv();
     });
 
     if (recv) // There were some events and they have all been dispatched, inform listener.
-      recv_finished_callback_();
+        recv_finished_callback_();
 
     std::for_each(send_sockets_.begin(), send_sockets_.end(), [](auto socket) {
-      socket->sendAndRecv();
+        socket->send_and_recv();
     });
-  }
+}
 
-  /// Check for new connections or dead connections and update containers that track the sockets.
-  auto TCPServer::poll() noexcept -> void {
+auto TCPServer::poll() noexcept -> void {
     const int max_events = 1 + send_sockets_.size() + receive_sockets_.size();
 
     const int n = epoll_wait(epoll_fd_, events_, max_events, 0);
     bool have_new_connection = false;
     for (int i = 0; i < n; ++i) {
-      const auto &event = events_[i];
-      auto socket = reinterpret_cast<TCPSocket *>(event.data.ptr);
+        const auto &event = events_[i];
+        auto socket = reinterpret_cast<TCPSocket *>(event.data.ptr);
 
-      // Check for new connections.
-      if (event.events & EPOLLIN) {
-        if (socket == &listener_socket_) {
-          INFO(logger_, "EPOLLIN listener_socket:%", socket->socket_fd_);
-          have_new_connection = true;
-          continue;
+        // Check for new connections.
+        if (event.events & EPOLLIN) {
+            if (socket == &listener_socket_) {
+                INFO(logger_, "EPOLLIN listener_socket:%", socket->socket_fd_);
+                have_new_connection = true;
+                continue;
+            }
+            INFO(logger_, "EPOLLIN socket:%", socket->socket_fd_);
+            if (std::find(receive_sockets_.begin(), receive_sockets_.end(), socket) == receive_sockets_.end())
+                receive_sockets_.push_back(socket);
         }
-        INFO(logger_, "EPOLLIN socket:%", socket->socket_fd_);
-        if (std::find(receive_sockets_.begin(), receive_sockets_.end(), socket) == receive_sockets_.end())
-          receive_sockets_.push_back(socket);
-      }
 
-      if (event.events & EPOLLOUT) {
-        INFO(logger_, "EPOLLOUT socket:%", socket->socket_fd_);
-        if (std::find(send_sockets_.begin(), send_sockets_.end(), socket) == send_sockets_.end())
-          send_sockets_.push_back(socket);
-      }
+        if (event.events & EPOLLOUT) {
+            INFO(logger_, "EPOLLOUT socket:%", socket->socket_fd_);
+            if (std::find(send_sockets_.begin(), send_sockets_.end(), socket) == send_sockets_.end())
+                send_sockets_.push_back(socket);
+        }
 
-      if (event.events & (EPOLLERR | EPOLLHUP)) {
-        INFO(logger_, "EPOLLERR socket:%", socket->socket_fd_);
-        if (std::find(receive_sockets_.begin(), receive_sockets_.end(), socket) == receive_sockets_.end())
-          receive_sockets_.push_back(socket);
-      }
+        if (event.events & (EPOLLERR | EPOLLHUP)) {
+            INFO(logger_, "EPOLLERR socket:%", socket->socket_fd_);
+            if (std::find(receive_sockets_.begin(), receive_sockets_.end(), socket) == receive_sockets_.end())
+                receive_sockets_.push_back(socket);
+        }
     }
 
     // Accept a new connection, create a TCPSocket and add it to our containers.
     while (have_new_connection) {
-      INFO(logger_, "have_new_connection");
-      sockaddr_storage addr;
-      socklen_t addr_len = sizeof(addr);
-      int fd = accept(listener_socket_.socket_fd_, reinterpret_cast<sockaddr *>(&addr), &addr_len);
-      if (fd == -1)
-        break;
+        INFO(logger_, "have_new_connection");
+        sockaddr_storage addr;
+        socklen_t addr_len = sizeof(addr);
+        int fd = accept(listener_socket_.socket_fd_, reinterpret_cast<sockaddr *>(&addr), &addr_len);
+        if (fd == -1)
+            break;
 
-      ASSERT(set_non_blocking(fd) && disable_nagle(fd),
-             "Failed to set non-blocking or no-delay on socket:" + std::to_string(fd));
+        ASSERT(set_non_blocking(fd) && disable_nagle(fd),
+            "Failed to set non-blocking or no-delay on socket:" + std::to_string(fd));
 
-      INFO(logger_, "accepted socket:%", fd);
+        INFO(logger_, "accepted socket:%", fd);
 
-      auto socket = new TCPSocket(logger_);
-      socket->socket_fd_ = fd;
-      socket->recv_callback_ = recv_callback_;
-      ASSERT(addToEpollList(socket), "Unable to add socket. error:" + std::string(std::strerror(errno)));
+        auto socket = new TCPSocket(logger_);
+        socket->socket_fd_ = fd;
+        socket->recv_callback_ = recv_callback_;
+        ASSERT(add_to_epoll_list(socket), "Unable to add socket. error:" + std::string(std::strerror(errno)));
 
-      if (std::find(receive_sockets_.begin(), receive_sockets_.end(), socket) == receive_sockets_.end())
-        receive_sockets_.push_back(socket);
+        if (std::find(receive_sockets_.begin(), receive_sockets_.end(), socket) == receive_sockets_.end())
+            receive_sockets_.push_back(socket);
     }
-  }
 }
+
+} // namespace common

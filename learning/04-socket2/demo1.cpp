@@ -5,7 +5,6 @@
 int main(int, char **) {
 	using namespace common;
 
-	std::string time_str_;
 	Logger logger_("build-linux/app.log");
 
 	auto tcpServerRecvCallback = [&](TCPSocket *socket, Nanos rx_time) noexcept {
@@ -58,11 +57,11 @@ int main(int, char **) {
 			const std::string client_msg = "CLIENT-[" + std::to_string(i) + "] : Sending " + std::to_string(itr * 100 + i);
 			INFO(logger_, "Sending TCPClient-[%] %", i, client_msg);
 			clients[i]->send(client_msg.data(), client_msg.length());
-			clients[i]->sendAndRecv();
+			clients[i]->send_and_recv();
 
 			std::this_thread::sleep_for(500ms);
 			server.poll();
-			server.sendAndRecv();
+			server.send_and_recv();
 		}
 	}
 
