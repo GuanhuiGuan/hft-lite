@@ -21,3 +21,9 @@ target_link_libraries(demo1 PRIVATE
     libcommon
     Threads::Threads
 )
+
+add_executable(demo2 demo2.cpp)
+target_link_libraries(demo2 PRIVATE 
+    libcommon
+    Threads::Threads
+)

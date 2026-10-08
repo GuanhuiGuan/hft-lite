@@ -51,12 +51,12 @@ class Logger final
 public:
     explicit Logger(const std::string& filename)
     : filename_{filename}, queue_{LOGGER_QUEUE_SIZE}
-    , running_{true}
+    , file_{filename}, running_{true}
     {
         std::string start_time {};
         std::cerr << get_now_str(&start_time) << " starting to init logger " << filename << std::endl;
 
-        file_.open(filename);
+        // file_.open(filename);
         ASSERT(file_.is_open(), "cannot open file " + filename);
         thread_ = create_and_start_thread(-1, "common::logger::" + filename, [this]{flush_queue();});
         ASSERT(thread_, "failed to start logger thread");
